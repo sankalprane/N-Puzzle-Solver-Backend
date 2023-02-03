@@ -1,6 +1,6 @@
 const Node = require('../model/node').Node;
 
-class BFS_Service {
+class ASTAR_Service {
     goal = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
     dir_row = [-1, 1, 0, 0]
     dir_col = [0, 0, -1, 1]
@@ -25,12 +25,27 @@ class BFS_Service {
         this.hashset.add(JSON.stringify(a));
     }
 
+    manhattan_distance(state) {
+        let answer = 0;
+        for (let x1 = 0; x1 < 3; x1++) {
+            for (let y1 = 0; y1 < 3; y1++) {
+                if (state[x1][y1] == 0) 
+                    continue;
+                let value = state[x1][y1];
+                let x2 = Math.floor((value - 1) / 3);
+                let y2 = (value - 1) % 3;
+                answer += (Math.abs(x1 - x2) + Math.abs(y1 - y2));
+            }
+        }
+        return answer;
+    }
+
 
     expand(current) {
         const list_of_child_nodes= [];
         let x = current.coordinates[0];
         let y = current.coordinates[1];
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < this.dir_row.length; i++) {
             const new_node = new Node();
             new_node.state = this.deepCopyArray(current.state);
             new_node.path = [...current.path];
@@ -43,16 +58,18 @@ class BFS_Service {
                 new_node.state[x][y] = temp;
                 new_node.coordinates[0] = new_x;
                 new_node.coordinates[1] = new_y;
+                new_node.cost = current.cost + 1;
                 list_of_child_nodes.push(new_node);
             }
         }
         return list_of_child_nodes;
     }
 
-    bfs(start) {
+    astar(start) {
         const queue = [];
         queue.push(start);
         while(queue.length !== 0) {
+            queue.sort((a, b) => a.cost - b.cost);
             let x = queue.shift();
             // console.log('x', x);
             this.setVisited(x.state);
@@ -64,6 +81,7 @@ class BFS_Service {
             for (let child of this.expand(x)) {
                 // console.log('child', child);
                 if (!this.isVisited(child.state)) {
+                    child.cost += this.manhattan_distance(child.state);
                     queue.push(child);
                     this.setVisited(child.state);
                 }
@@ -88,10 +106,10 @@ class BFS_Service {
                 }
             }
         }
-        const path = this.bfs(s);
+        const path = this.astar(s);
 
         return { "path": path };
     }
 }
 
-exports.BFS_Service = BFS_Service;
+exports.ASTAR_Service = ASTAR_Service;
