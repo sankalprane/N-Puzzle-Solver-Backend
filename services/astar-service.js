@@ -1,4 +1,5 @@
 const Node = require('../model/node').Node;
+const fs = require('fs');
 
 class ASTAR_Service {
     goal = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
@@ -6,6 +7,8 @@ class ASTAR_Service {
     dir_col = [0, 0, -1, 1]
     direction = ['U','D','L','R'];
     hashset = new Set();
+    map = new Map();
+    intial_state;
 
     checkEquals(a, b) {
         return JSON.stringify(a) === JSON.stringify(b);
@@ -76,6 +79,7 @@ class ASTAR_Service {
             if (this.checkEquals(x.state, this.goal)) {
                 console.log("MOVES: ");
                 console.log(x.path);
+                this.saveSolution(x.path)
                 return x.path;
             }
             for (let child of this.expand(x)) {
@@ -90,14 +94,31 @@ class ASTAR_Service {
         return 0;
     }
 
+    saveSolution(path) {
+        // console.log('inside save solution!')
+        this.map.set(JSON.stringify(this.intial_state), path);
+        let data = JSON.stringify([...this.map]);
+        // console.log(data);
+        fs.writeFileSync('astar-map.json', data);
+    }
 
-
-
+    readSolution() {
+        let data = fs.readFileSync('astar-map.json');
+        this.map = new Map(JSON.parse(data));
+    }
 
     start(start) {
         // start =  [[5, 1, 2, 3], [9, 6, 7, 4], [13, 10, 11, 8], [0, 14, 15, 12]];
+        this.readSolution();
+        console.log(this.map);
+        if (this.map.has(JSON.stringify(start))) {
+            let path = this.map.get(JSON.stringify(start));
+            console.log('cache used!');
+            return { "path": path }
+        }
         const s = new Node();
         s.state = this.deepCopyArray(start);
+        this.intial_state = this.deepCopyArray(start);
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
                 if (start[i][j] == 0) {
