@@ -49,11 +49,11 @@ class BFS_Service {
         return list_of_child_nodes;
     }
 
-    bfs(start) {
+    bfs(start, parent) {
         const queue = [];
-        queue.push(start);
+        queue.push([start, parent]);
         while(queue.length !== 0) {
-            let x = queue.shift();
+            let [x, parent] = queue.shift();
             // console.log('x', x);
             this.setVisited(x.state);
             if (this.checkEquals(x.state, this.goal)) {
@@ -64,7 +64,12 @@ class BFS_Service {
             for (let child of this.expand(x)) {
                 // console.log('child', child);
                 if (!this.isVisited(child.state)) {
-                    queue.push(child);
+                    const node = {
+                        name: child.state,
+                        children: [],
+                    }
+                    parent.push(node);
+                    queue.push([child, node.children]);
                     this.setVisited(child.state);
                 }
             }
@@ -80,6 +85,11 @@ class BFS_Service {
         // start =  [[5, 1, 2, 3], [9, 6, 7, 4], [13, 10, 11, 8], [0, 14, 15, 12]];
         const s = new Node();
         s.state = this.deepCopyArray(start);
+        const tree = {
+            name: start,
+            children: [],
+        }
+        
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
                 if (start[i][j] == 0) {
@@ -88,9 +98,9 @@ class BFS_Service {
                 }
             }
         }
-        const path = this.bfs(s);
+        const path = this.bfs(s, tree.children);
 
-        return { "path": path };
+        return { "path": path, "tree": tree };
     }
 }
 

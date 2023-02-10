@@ -20,9 +20,9 @@ app.post('/bfs', (req, res) => {
 
 app.post('/astar', (req, res) => {
     console.log(req.body);
-    const bfs_service = new ASTAR_Service();
+    const astar_service = new ASTAR_Service();
     start =  req.body.start;
-    res.json(bfs_service.start(start));
+    res.json(astar_service.start(start));
 });
 
 app.post('/iddfs', (req, res) => {
