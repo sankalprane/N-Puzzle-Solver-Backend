@@ -1,5 +1,4 @@
 const Node = require('../model/node').Node;
-const fs = require('fs');
 
 class ASTAR_Service {
     goal = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
@@ -7,7 +6,6 @@ class ASTAR_Service {
     dir_col = [0, 0, -1, 1]
     direction = ['U','D','L','R'];
     hashset = new Set();
-    map = new Map();
     intial_state;
 
     checkEquals(a, b) {
@@ -68,25 +66,29 @@ class ASTAR_Service {
         return list_of_child_nodes;
     }
 
-    astar(start) {
+    astar(start, parent) {
         const queue = [];
-        queue.push(start);
+        queue.push([start, parent]);
         while(queue.length !== 0) {
             queue.sort((a, b) => a.cost - b.cost);
-            let x = queue.shift();
+            let [x, parent] = queue.shift();
             // console.log('x', x);
             this.setVisited(x.state);
             if (this.checkEquals(x.state, this.goal)) {
                 console.log("MOVES: ");
                 console.log(x.path);
-                this.saveSolution(x.path)
                 return x.path;
             }
             for (let child of this.expand(x)) {
                 // console.log('child', child);
                 if (!this.isVisited(child.state)) {
+                    const node = {
+                        name: child.state,
+                        children: [],
+                    }
                     child.cost += this.manhattan_distance(child.state);
-                    queue.push(child);
+                    parent.push(node);
+                    queue.push([child, node.children]);
                     this.setVisited(child.state);
                 }
             }
@@ -94,30 +96,16 @@ class ASTAR_Service {
         return 0;
     }
 
-    saveSolution(path) {
-        // console.log('inside save solution!')
-        this.map.set(JSON.stringify(this.intial_state), path);
-        let data = JSON.stringify([...this.map]);
-        // console.log(data);
-        fs.writeFileSync('astar-map.json', data);
-    }
-
-    readSolution() {
-        let data = fs.readFileSync('astar-map.json');
-        this.map = new Map(JSON.parse(data));
-    }
-
     start(start) {
         // start =  [[5, 1, 2, 3], [9, 6, 7, 4], [13, 10, 11, 8], [0, 14, 15, 12]];
-        this.readSolution();
-        console.log(this.map);
-        if (this.map.has(JSON.stringify(start))) {
-            let path = this.map.get(JSON.stringify(start));
-            console.log('cache used!');
-            return { "path": path }
-        }
+
         const s = new Node();
         s.state = this.deepCopyArray(start);
+        const tree = {
+            name: start,
+            children: [],
+        }
+
         this.intial_state = this.deepCopyArray(start);
         for (let i = 0; i < 3; i++) {
             for (let j = 0; j < 3; j++) {
@@ -127,9 +115,9 @@ class ASTAR_Service {
                 }
             }
         }
-        const path = this.astar(s);
+        const path = this.astar(s, tree.children);
 
-        return { "path": path };
+        return { "path": path, "tree": tree };
     }
 }
 
