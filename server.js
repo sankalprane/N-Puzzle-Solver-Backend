@@ -27,9 +27,9 @@ app.post('/astar', (req, res) => {
 
 app.post('/iddfs', (req, res) => {
     console.log(req.body);
-    const bfs_service = new IDDFS_Service();
+    const iddfs_service = new IDDFS_Service();
     start =  req.body.start;
-    res.json(bfs_service.start(start));
+    res.json(iddfs_service.start(start));
 });
 
 app.listen(4000);
