@@ -7,6 +7,8 @@ class ASTAR_Service {
     direction = ['U','D','L','R'];
     hashset = new Set();
     intial_state;
+    nodes_expanded = 0;
+    sendTree = true;
 
     checkEquals(a, b) {
         return JSON.stringify(a) === JSON.stringify(b);
@@ -60,6 +62,7 @@ class ASTAR_Service {
                 new_node.coordinates[0] = new_x;
                 new_node.coordinates[1] = new_y;
                 new_node.cost = current.cost + 1;
+                this.nodes_expanded++;
                 list_of_child_nodes.push(new_node);
             }
         }
@@ -70,6 +73,11 @@ class ASTAR_Service {
         const queue = [];
         queue.push([start, parent]);
         while(queue.length !== 0) {
+            if (this.nodes_expanded > 1000) {
+                this.sendTree = false;
+                this.hashset.clear();
+                return;
+            }
             queue.sort((a, b) => a.cost - b.cost);
             let [x, parent] = queue.shift();
             // console.log('x', x);
@@ -96,6 +104,31 @@ class ASTAR_Service {
         return 0;
     }
 
+    astarWithoutTree(start) {
+        const queue = [];
+        queue.push(start);
+        while(queue.length !== 0) {
+            queue.sort((a, b) => a.cost - b.cost);
+            let x = queue.shift();
+            // console.log('x', x);
+            this.setVisited(x.state);
+            if (this.checkEquals(x.state, this.goal)) {
+                console.log("MOVES: ");
+                console.log(x.path);
+                return x.path;
+            }
+            for (let child of this.expand(x)) {
+                // console.log('child', child);
+                if (!this.isVisited(child.state)) {
+                    child.cost += this.manhattan_distance(child.state);
+                    queue.push(child);
+                    this.setVisited(child.state);
+                }
+            }
+        }
+        return 0;
+    }
+
     start(start) {
         // start =  [[5, 1, 2, 3], [9, 6, 7, 4], [13, 10, 11, 8], [0, 14, 15, 12]];
 
@@ -115,7 +148,9 @@ class ASTAR_Service {
                 }
             }
         }
-        const path = this.astar(s, tree.children);
+        let path = this.astar(s, tree.children);
+        if (this.sendTree === false)
+            path = this.astarWithoutTree(s);
 
         return { "path": path, "tree": tree };
     }

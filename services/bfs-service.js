@@ -6,6 +6,8 @@ class BFS_Service {
     dir_col = [0, 0, -1, 1]
     direction = ['U','D','L','R'];
     hashset = new Set();
+    nodes_expanded = 0;
+    sendTree = true;
 
     checkEquals(a, b) {
         return JSON.stringify(a) === JSON.stringify(b);
@@ -43,6 +45,7 @@ class BFS_Service {
                 new_node.state[x][y] = temp;
                 new_node.coordinates[0] = new_x;
                 new_node.coordinates[1] = new_y;
+                this.nodes_expanded++;
                 list_of_child_nodes.push(new_node);
             }
         }
@@ -53,6 +56,11 @@ class BFS_Service {
         const queue = [];
         queue.push([start, parent]);
         while(queue.length !== 0) {
+            if (this.nodes_expanded > 1000) {
+                this.hashset.clear();
+                this.sendTree = false;
+                return;
+            }
             let [x, parent] = queue.shift();
             // console.log('x', x);
             this.setVisited(x.state);
@@ -77,7 +85,28 @@ class BFS_Service {
         return 0;
     }
 
-
+    bfsWithoutTree(start) {
+        const queue = [];
+        queue.push(start);
+        while(queue.length !== 0) {
+            let x = queue.shift();
+            // console.log('x', x);
+            this.setVisited(x.state);
+            if (this.checkEquals(x.state, this.goal)) {
+                console.log("MOVES: ");
+                console.log(x.path);
+                return x.path;
+            }
+            for (let child of this.expand(x)) {
+                // console.log('child', child);
+                if (!this.isVisited(child.state)) {
+                    queue.push(child);
+                    this.setVisited(child.state);
+                }
+            }
+        }
+        return 0;
+    }
 
 
 
@@ -98,7 +127,9 @@ class BFS_Service {
                 }
             }
         }
-        const path = this.bfs(s, tree.children);
+        let path = this.bfs(s, tree.children);        
+        if (this.sendTree === false)
+            path = this.bfsWithoutTree(s);
 
         return { "path": path, "tree": tree };
     }

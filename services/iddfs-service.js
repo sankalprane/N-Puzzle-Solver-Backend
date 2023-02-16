@@ -5,6 +5,8 @@ class IDDFS_Service {
     dir_row = [-1, 1, 0, 0]
     dir_col = [0, 0, -1, 1]
     direction = ['U','D','L','R'];
+    nodes_expanded = 0;
+    sendTree = true;
 
     checkEquals(a, b) {
         return JSON.stringify(a) === JSON.stringify(b);
@@ -42,6 +44,7 @@ class IDDFS_Service {
                 new_node.state[x][y] = temp;
                 new_node.coordinates[0] = new_x;
                 new_node.coordinates[1] = new_y;
+                this.nodes_expanded++;
                 list_of_child_nodes.push(new_node);
             }
         }
@@ -50,6 +53,8 @@ class IDDFS_Service {
 
     iterativeDeepeningSearch(start, parent) {
         for (let i = 0; ; i++) {
+            if (this.sendTree === false)
+                return;
             let hashset = new Set();
             const result = this.depthLimitedSearch(start, i, hashset, parent);
             if (result)
@@ -61,6 +66,10 @@ class IDDFS_Service {
         const stack = [];
         stack.push([start, parent]);
         while (stack.length !== 0) {
+            if (this.nodes_expanded > 1000) {
+                this.sendTree = false;
+                return;
+            }
             let [x, parent] = stack.pop();
             // console.log('x', x);
             this.setVisited(x.state, hashset);
@@ -89,6 +98,44 @@ class IDDFS_Service {
         return 0;
     }
 
+
+    iterativeDeepeningSearchWihoutTree(start) {
+        for (let i = 0; ; i++) {
+            let hashset = new Set();
+            const result = this.depthLimitedSearchWihoutTree(start, i, hashset);
+            if (result)
+                return result;
+        }
+    }
+
+    depthLimitedSearchWihoutTree(start, l, hashset) {
+        const stack = [];
+        stack.push(start);
+        while (stack.length !== 0) {
+            let x = stack.pop();
+            console.log('x', x);
+            this.setVisited(x.state, hashset);
+            if (this.checkEquals(x.state, this.goal)) {
+                console.log("MOVES: ");
+                console.log(x.path);
+                return x.path;
+            }
+            if (x.depth < l) {
+                for (let child of this.expand(x)) {
+                    // console.log('child', child);
+                    if (!this.isVisited(child.state, hashset)) {
+                        stack.push(child);
+                        this.setVisited(child.state, hashset);
+                        child.depth = x.depth + 1;
+                    }
+                }
+            }
+
+        }
+        return 0;
+    }
+
+
     start(start) {
         // start =  [[5, 1, 2, 3], [9, 6, 7, 4], [13, 10, 11, 8], [0, 14, 15, 12]];
         const s = new Node();
@@ -107,7 +154,9 @@ class IDDFS_Service {
                 }
             }
         }
-        const path = this.iterativeDeepeningSearch(s, tree.children);
+        let path = this.iterativeDeepeningSearch(s, tree.children);
+        if (this.sendTree === false)
+            path = this.iterativeDeepeningSearchWihoutTree(s);
 
         return { "path": path, "tree": tree };
     }
